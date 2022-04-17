@@ -165,7 +165,8 @@ class Cracker:
         def run(self):
             with suppress(StopIteration, RuntimeError):
                 while self.root.isRunning():
-                    self.crack(next(self.root.sync_ips_iter))
+                    with suppress(Exception):
+                        self.crack(next(self.root.sync_ips_iter))
                 return
 
         def crack(self, target, port=22):
