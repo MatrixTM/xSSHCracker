@@ -14,19 +14,16 @@ basicConfig(level=CRITICAL)
 class Counter:
     def __init__(self, value=0):
         self._value = RawValue('i', value)
-        self._lock = Lock()
 
     def __iadd__(self, value):
-        with self._lock:
-            self._value.value += value
+        self._value.value += value
         return self
 
     def __int__(self):
         return self._value.value
 
     def set(self, value):
-        with self._lock:
-            self._value.value = value
+        self._value.value = value
         return self
 
 
@@ -185,7 +182,7 @@ class Cracker:
             for username in self.root.userlist:
                 for password in self.root.passlist:
                     try:
-                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=10)
+                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
                         self.sshClient.close()
                         self.root.save(target, port, username, password)
                         return
