@@ -182,7 +182,7 @@ class Cracker:
                             sshClient = SSHClient()
                             sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
                             sshClient.load_system_host_keys()
-                            sshClient.connect(target, port, username, password, timeout=1)
+                            sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
                             self.root.save(target, port, username, password)
                             ties = 0
 
@@ -192,14 +192,8 @@ class Cracker:
                         except AuthenticationException:
                             Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
                             ties = 0
-                        except SSHException:
-                            Logger.warning("[%s] an SSHException recived !" % target)
-                            ties -= 1
-                        except EOFError:
-                            Logger.warning("[%s] an EOFError recived !" % target)
-                            ties -= 1
                         except Exception as e:
-                            Logger.warning("Unknown error recived ", e)
+                            Logger.warning("[%s]" % target, e)
                             ties -= 1
                             
                         
