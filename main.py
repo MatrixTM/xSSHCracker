@@ -192,10 +192,12 @@ class Cracker:
 
                     except TimeoutError:
                         Logger.fail("[%s] Timeout !" % target)
+                        return
                     except AuthenticationException:
                         Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
                     except Exception as e:
                         Logger.warning("[%s]" % target, e)
+                        return
                             
                         
             self.root.tried += 1
