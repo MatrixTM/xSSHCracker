@@ -185,7 +185,7 @@ class Cracker:
             for username in self.root.userlist:
                 for password in self.root.passlist:
                     try:
-                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=200)
+                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=10)
                         self.sshClient.close()
                         self.root.save(target, port, username, password)
                         return
