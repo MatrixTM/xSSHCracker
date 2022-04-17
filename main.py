@@ -5,7 +5,7 @@ from multiprocessing import RawValue
 from time import sleep
 from os.path import exists as file_exists
 from contextlib import suppress
-from paramiko import AuthenticationException:, SSHClient, AutoAddPolicy, SSHException
+from paramiko import AuthenticationException, SSHClient, AutoAddPolicy, SSHException
 
 
 class Counter:
