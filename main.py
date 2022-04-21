@@ -149,7 +149,7 @@ class Cracker:
     def save(self, target, port, username, password):
         self.cracked += 1
         with open("result.txt", "a+") as f:
-            text = "%s:%d@%s %s" % (target, port, username, password)
+            text = "%s:%d@ | %s | %s" % (target, port, username, password)
             f.write(text + "\n")
             Logger.succses(text)
 
@@ -181,6 +181,7 @@ class Cracker:
         def crack(self, target, port=22):
             self.root.event.wait()
             try:
+                trieds = len(self.root.userlist)
                 for username in self.root.userlist:
                     for password in self.root.passlist:
                         try:
@@ -199,10 +200,16 @@ class Cracker:
 
                         except AuthenticationException:
                             Logger.fail("[%s] Invalid user or password %s:%s | %d/%d" % (target, username, password, int(self.root.tried), len(self.root.sync_ips)))
+                        
                         except Exception as e:
+                            if str(e) == "No existing session":
+                                trieds -= 1
+                                if not trieds:
+                                    return
+                                continue
                             Logger.warning("[%s] %s | %d/%d" % (target, str(e) or repr(e), int(self.root.tried), len(self.root.sync_ips)))
                             return
-                                    
+
                         finally:
                             self.root.tps += 1
                         
