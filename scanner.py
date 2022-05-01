@@ -11,6 +11,7 @@ from multiprocessing import RawValue
 from time import sleep
 
 RANGEIP = compile("((?:\d{1,3}\.){3}\d{1,3})-((?:\d{1,3}\.){3}\d{1,3})")
+CIDERREX = compile("((?:\d{1,3}\.){3}\d{1,3}/\d{1,2})")
 
 class Logger:
     @staticmethod
@@ -160,16 +161,18 @@ if __name__ == "__main__":
         file = Inputs.file("Ip Range File: ")
         with open(file, "r+") as f:
             Logger.info("Loading IP ranges from " + file)
-            raaa = RANGEIP.findall(f.read())
-            ranged = SyncIPRange(*raaa)
-            Logger.info("Loaded %d ip ranges" % len(raaa))
+            data = f.read()
+            ranges = RANGEIP.findall(data)
+            ciders = CIDERREX.findall(data)
+            ranged = SyncIPRange(*ciders, *ranges)
+            Logger.info("Loaded %d ip ranges" % (len(ranges) + len(ciders)))
+            Logger.info("Loaded ips", f"{len(ranged):,}")
             port = Inputs.integer("Port to scan: ")
             threads = Inputs.integer("Threads: ")
             op = writeIO(input("Output: "))
-            Logger.info("Loaded ips", f"{len(ranged):,}")
 
             for _ in range(threads):
-                Scanner(ranged, op, port) .start()
+                Scanner(ranged, op, port).start()
 
         while True:
             CPS.set(0)
